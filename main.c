@@ -160,11 +160,11 @@ int draw_fov(int resolution, double fov, struct Player player, struct Video vide
         }
         dist_vert = distance(player.x+5, player.y+5, rx,ry);
         if (dist_vert < dist_hor){
-            SDL_RenderDrawLineF(video.renderer, player.x + 5, player.y + 5, rx_vert, ry_vert);
+        //    SDL_RenderDrawLineF(video.renderer, player.x + 5, player.y + 5, rx_vert, ry_vert);
             dist = dist_vert;
         }
         else {
-            SDL_RenderDrawLineF(video.renderer, player.x + 5, player.y + 5, rx_hor, ry_hor);
+        //    SDL_RenderDrawLineF(video.renderer, player.x + 5, player.y + 5, rx_hor, ry_hor);
             dist = dist_hor;
         }
         //desenha paredes
@@ -173,9 +173,14 @@ int draw_fov(int resolution, double fov, struct Player player, struct Video vide
         wall.h = video.heigth*video.heigth/(10*dist);
         wall.y = video.heigth/2 - wall.h/2;
         wall.w = video.width/resolution;
-        SDL_SetRenderDrawColor(video.renderer, 0,0,255,255);
+        if (dist == dist_hor){
+            SDL_SetRenderDrawColor(video.renderer, 0,0,255,255);
+        }
+        else{
+            SDL_SetRenderDrawColor(video.renderer, 0,0,200,255);
+        }
         SDL_RenderDrawRect(video.renderer, &wall);
-        //SDL_RenderFillRects(video.renderer, &wall, 1);
+        SDL_RenderFillRects(video.renderer, &wall, 1);
         SDL_SetRenderDrawColor(video.renderer, 200,200,200,255);
     }
     return 0;
@@ -186,10 +191,10 @@ int draw_player(struct Player player, struct Video video, bool map[10][10]){
     player.box.y = player.y;
     player.box.w = 10;
     player.box.h = 10;
-    SDL_RenderDrawRect(video.renderer, &player.box);
-    SDL_RenderFillRects(video.renderer, &player.box, 1);
-    SDL_RenderDrawLineF(video.renderer,
-                    player.x + 5, player.y + 5, player.x + 5 + player.dx*5, player.y + 5 + player.dy*5);
+    //SDL_RenderDrawRect(video.renderer, &player.box);
+    //SDL_RenderFillRects(video.renderer, &player.box, 1);
+    //SDL_RenderDrawLineF(video.renderer,
+    //                player.x + 5, player.y + 5, player.x + 5 + player.dx*5, player.y + 5 + player.dy*5);
     draw_fov(90, 3.1416/2, player, video, map);
     return 0;
 }
@@ -221,8 +226,8 @@ int main(int argc, char *argv[]){
 
     //inicialisa o struct jogador
     struct Player player = {0};
-    player.x = 310;
-    player.y = 310;
+    player.x = video.heigth/2 - 10;
+    player.y = video.width/2 - 10;
     player.dx = 0;
     player.dy = 1;
     player.alpha = 0;
@@ -280,9 +285,9 @@ int main(int argc, char *argv[]){
                     SDL_SetRenderDrawColor(video.renderer,100,100,100,255);
                     box.x = box.w * j;
                     box.y = box.h * i;
-                    SDL_RenderDrawRect(video.renderer, &box);
-                    SDL_RenderFillRects(video.renderer, &box, 1);
-                    SDL_SetRenderDrawColor(video.renderer,0,0,0,0);
+                    //SDL_RenderDrawRect(video.renderer, &box);
+                    //SDL_RenderFillRects(video.renderer, &box, 1);
+                    //SDL_SetRenderDrawColor(video.renderer,0,0,0,0);
                 }
             }
         }
