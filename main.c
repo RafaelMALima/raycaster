@@ -69,7 +69,7 @@ int player_controller(struct Player *player, const Uint8* keyboard_state_array){
 //desenha e calcula o FOV
 int draw_fov(int resolution, double fov, struct Player player, struct Video video, bool map[10][10]){
     int map_x, map_y, dof;
-    double internal_ang, teta_0, teta, rx, ry, yo, xo, dist_vert, dist_hor, rx_vert, rx_hor, ry_vert, ry_hor, dist;
+    double internal_ang, teta_0, teta, rx, ry, yo, xo, dist_vert, dist_hor, rx_vert, rx_hor, ry_vert, ry_hor, dist, dist_corrigida;
     //double distances[resolution] = {-1};
     internal_ang = fov/resolution;
     teta_0 = player.alpha - internal_ang*resolution/2;
@@ -160,17 +160,21 @@ int draw_fov(int resolution, double fov, struct Player player, struct Video vide
         }
         dist_vert = distance(player.x+5, player.y+5, rx,ry);
         if (dist_vert < dist_hor){
-        //    SDL_RenderDrawLineF(video.renderer, player.x + 5, player.y + 5, rx_vert, ry_vert);
+            //SDL_RenderDrawLineF(video.renderer, player.x + 5, player.y + 5, rx_vert, ry_vert);
             dist = dist_vert;
         }
         else {
-        //    SDL_RenderDrawLineF(video.renderer, player.x + 5, player.y + 5, rx_hor, ry_hor);
+            //SDL_RenderDrawLineF(video.renderer, player.x + 5, player.y + 5, rx_hor, ry_hor);
             dist = dist_hor;
         }
         //desenha paredes
         SDL_Rect wall = {0};
+        double ca = player.alpha - teta;
+        if (ca > 2*3.1416){ ca -= 6.28;}
+        if (ca < 0) { ca+=6.28; }
+        dist_corrigida = dist*cos(ca);
         wall.x = i*video.width/resolution;
-        wall.h = video.heigth*video.heigth/(10*dist);
+        wall.h = (video.heigth*video.heigth)/(10*(dist + dist_corrigida)/2);
         wall.y = video.heigth/2 - wall.h/2;
         wall.w = video.width/resolution;
         if (dist == dist_hor){
@@ -194,8 +198,8 @@ int draw_player(struct Player player, struct Video video, bool map[10][10]){
     //SDL_RenderDrawRect(video.renderer, &player.box);
     //SDL_RenderFillRects(video.renderer, &player.box, 1);
     //SDL_RenderDrawLineF(video.renderer,
-    //                player.x + 5, player.y + 5, player.x + 5 + player.dx*5, player.y + 5 + player.dy*5);
-    draw_fov(90, 3.1416/2, player, video, map);
+    //                    player.x + 5, player.y + 5, player.x + 5 + player.dx*5, player.y + 5 + player.dy*5);
+    draw_fov(video.width, 3.1416/2, player, video, map);
     return 0;
 }
 
@@ -214,8 +218,8 @@ int main(int argc, char *argv[]){
 
     //inicialisa as condicoes para a janela
     struct Video video = {0};
-    video.width = 640;
-    video.heigth = 640;
+    video.width = 1280;
+    video.heigth = 720;
     video.window = NULL;
     video.renderer = NULL;
     video.fps = 60;
@@ -263,7 +267,11 @@ int main(int argc, char *argv[]){
     int starttime = 0;
     int deltatime;
 
-
+    SDL_Rect floor;
+    floor.x = 0;
+    floor.y = video.heigth/2;
+    floor.h = floor.y;
+    floor.w = video.width;
     while(video.running){
         keep_fps(starttime, endtime, video.fps);
         starttime = SDL_GetTicks();
@@ -279,6 +287,9 @@ int main(int argc, char *argv[]){
 
         //desenha o mapa
         int colisao = 0;
+        SDL_SetRenderDrawColor(video.renderer, 100,100,100,255);
+        SDL_RenderDrawRect(video.renderer, &floor);
+        SDL_RenderFillRects(video.renderer, &floor, 1);
         for (int i = 0; i < 10; i++){
             for (int j = 0; j < 10; j++){
                 if (grid[i][j] == 1){
@@ -297,7 +308,7 @@ int main(int argc, char *argv[]){
         //desenha o jogador
         SDL_SetRenderDrawColor(video.renderer,200,200,200,255);
         draw_player(player, video, grid);
-        SDL_SetRenderDrawColor(video.renderer,0,0,0,0);
+        SDL_SetRenderDrawColor(video.renderer,130,130,130,255);
 
 
         //
