@@ -24,15 +24,17 @@ struct Player{
     SDL_Rect box;
 };
 
-int check_colision_player(struct Player player, SDL_Rect box){
-    if ((player.x + player.dx >= box.x && player.x + player.dx <= box.x+box.w) && (player.y + player.dy >= box.y && player.y + player.dy <= box.y+box.h)){
-        return 3;
+int check_colision_player(struct Player *player, SDL_Rect box){
+   //colisao frontal
+    if ((player -> x + player -> dx > box.x && player -> x + player -> dx < box.x + box.w ) // checa no eixo x
+    && (player -> y + player -> dy > box.y && player -> y + player -> dy < box.y + box.h )) //checa o eixo y
+    {
+        return 1; // 1 = colisao frontal
     }
-    else if (player.x + player.dx >= box.x && player.x + player.dx <= box.x+box.w){
-        return 1;
-    }
-    else if (player.y + player.dy >= box.y && player.y + player.dy <= box.y+box.h){
-        return 2;
+    if ((player -> x - player -> dx > box.x && player -> x - player -> dx < box.x + box.w ) // checa no eixo x
+    && (player -> y - player -> dy > box.y && player -> y - player -> dy < box.y + box.h)) //checa o eixo y
+    { 
+        return 2; // 2 = colisao traseira
     }
     return 0;
 }
@@ -41,16 +43,38 @@ float distance(double x1,double y1,double x2,double y2){
     return sqrt((x2 - x1)*(x2 - x1) +(y2 - y1)*(y2 - y1));
 }
 
-int player_controller(struct Player *player, const Uint8* keyboard_state_array, int collision){
-    if (keyboard_state_array[SDL_SCANCODE_W]) {
+int player_controller(struct Player *player, const Uint8* keyboard_state_array,int map[10][10], struct Video video){
+    int  coordinate_x, coordinate_y;
+    coordinate_x = (int)player -> x >> 6;
+    coordinate_y = (int)player -> y >> 6;
+    int colision = 0;
+    int b_colision;
+    for (int i = coordinate_x - 1; i <= coordinate_x + 1; i++){
+        for (int j = coordinate_y - 1; j <= coordinate_y + 1; j++){
+            //printf("%i, %i \n",i,j);
+            if (map[j][i] == 1){
+                SDL_Rect box;
+                box.x = (i << 6);
+                box.y = (j << 6);
+                box.w = 64;
+                box.h = 64;
+                //printf("%i, %i, %f, %f\n",box.x , box.y, player -> x, player -> y);
+                b_colision = check_colision_player(player, box);
+                if (colision == 0){
+                    //printf("%i, %i, %i, %i, %f, %f \n",box.x, box.x + box.w, box.y, box.y + box.h, player -> x + player -> dx, player -> y + player -> dy);
+                    colision = b_colision;
+                }
+                printf("%i \n",colision);
+            }
+        }
+    }
+    if (keyboard_state_array[SDL_SCANCODE_W] && colision != 1) {
         player -> x += player -> dx;
         player -> y += player -> dy;
-        //printf("%i \n", player -> y);
     }
-    if (keyboard_state_array[SDL_SCANCODE_S]) {
+    if (keyboard_state_array[SDL_SCANCODE_S] && colision != 2) {
         player ->x -= player -> dx;
         player ->y -= player -> dy;
-        //printf("%i \n, player -> y");
     }
     if (keyboard_state_array[SDL_SCANCODE_A]) {
         player -> alpha -= 0.1;
@@ -64,20 +88,10 @@ int player_controller(struct Player *player, const Uint8* keyboard_state_array, 
         player -> dx = cos(player -> alpha) * 5;
         player -> dy = sin(player -> alpha) * 5;
     }
-    //if (collision == 1){
-    //    player -> dx = 0;
-    //}
-    //else if (collision == 2){
-    //    player -> dy = 0;
-    //}
-    //else if (collision == 3){
-    //    player -> dx = 0;
-    //    player -> dy = 0;
-    //}
 }
 
 //desenha e calcula o FOV
-int draw_fov(int resolution, double fov, struct Player player, struct Video video, bool map[10][10]){
+int draw_fov(int resolution, double fov, struct Player player, struct Video video, int map[10][10]){
     int map_x, map_y, dof;
     double internal_ang, teta_0, teta, rx, ry, yo, xo, dist_vert, dist_hor, rx_vert, rx_hor, ry_vert, ry_hor, dist, dist_corrigida, delta_teta, teta_a_tan;
     internal_ang = fov/resolution;
@@ -87,7 +101,7 @@ int draw_fov(int resolution, double fov, struct Player player, struct Video vide
         //checagem para o horizontal
         teta = teta_0 + i*internal_ang; if (teta < 0){ teta += 6.28;} else if (teta > 6.28){ teta -= 6.28; }
         teta_a_tan = -1/tan(teta);
-        if (teta_a_tan < -10000){ teta_a_tan = -10000; }
+    if (teta_a_tan < -1000){ teta_a_tan = -1000; }
         //angulo para baixo
         if (teta > 3.141) { 
             ry =(((int)(player.y + 5)>>6)<<6) -0.0001;
@@ -129,6 +143,8 @@ int draw_fov(int resolution, double fov, struct Player player, struct Video vide
         //angulo para esquerda
         dof = 0;
         double teta_tan = -tan(teta);
+        if (teta_tan > 1000){ teta_tan = 1000; }
+        if (teta_tan < -1000){ teta_tan = -1000; }
         if (teta > 3.1416/2 && teta < 3*3.1416/2) { 
             rx=(((int)(player.x + 5)>>6)<<6) -0.0001; 
             ry=(player.x + 5 - rx)*teta_tan+player.y+5; 
@@ -196,7 +212,7 @@ int draw_fov(int resolution, double fov, struct Player player, struct Video vide
     return 0;
 }
 
-int draw_player(struct Player player, struct Video video, bool map[10][10]){
+int draw_player(struct Player player, struct Video video, int map[10][10]){
     player.box.x = player.x;
     player.box.y = player.y;
     player.box.w = 10;
@@ -243,17 +259,14 @@ int main(int argc, char *argv[]){
     player.alpha = 0;
 
 
-
-    //struct Map map = {};
-
-    bool grid[10][10] = {
+    int grid[10][10] = {
     {1,1,1,1,1,1,1,1,1,1},
     {1,0,0,0,0,0,0,0,0,1},
-    {1,0,0,1,1,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,1,1,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,1},
     {1,0,0,0,1,0,0,0,0,1},
-    {1,0,0,0,0,0,0,0,0,1},
-    {1,0,0,0,0,0,0,0,0,1},
-    {1,0,1,0,0,0,0,0,0,1},
     {1,0,1,1,1,0,0,0,0,1},
     {1,0,1,0,0,0,0,0,0,1},
     {1,1,1,1,1,1,1,1,1,1}
@@ -261,8 +274,8 @@ int main(int argc, char *argv[]){
 
 
     SDL_Rect box;
-    box.h = video.heigth/10;
-    box.w = video.width/10;
+    box.h = 64;
+    box.w = 64;
 
     SDL_CreateWindowAndRenderer(video.width, video.heigth, SDL_WINDOW_OPENGL, &video.window, &video.renderer);
 
@@ -292,7 +305,6 @@ int main(int argc, char *argv[]){
         }
 
         //desenha o mapa
-        int collision = 0;
         SDL_SetRenderDrawColor(video.renderer, 100,100,100,255);
         SDL_RenderDrawRect(video.renderer, &floor);
         SDL_RenderFillRects(video.renderer, &floor, 1);
@@ -309,7 +321,7 @@ int main(int argc, char *argv[]){
             }
         }
         //recebe input e lida com ele
-        player_controller(&player, keyboard_state_array, collision);
+        player_controller(&player, keyboard_state_array, grid, video);
 
         //desenha o jogador
         SDL_SetRenderDrawColor(video.renderer,200,200,200,255);
